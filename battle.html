@@ -3,112 +3,137 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Krishna Battle 3D</title>
 
 <style>
+* { box-sizing:border-box; }
 body {
-    margin: 0;
-    overflow: hidden;
-    background: #111;
-    font-family: Arial;
-    color: white;
+    margin:0;
+    overflow:hidden;
+    background:#111;
+    color:white;
+    font-family:Arial,sans-serif;
+    touch-action:none;
 }
+canvas { display:block; }
 
-#ui {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 5;
-    background: #000a;
-    padding: 12px;
-    border-radius: 10px;
+#hud {
+    position:fixed;
+    top:10px;
+    left:10px;
+    z-index:3;
+    padding:12px;
+    background:#000b;
+    border-radius:10px;
+    line-height:1.7;
 }
+#hud strong { color:orange; }
 
-#message {
-    color: yellow;
-    font-size: 20px;
+#crosshair {
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    font-size:25px;
+    color:white;
+    text-shadow:0 0 5px black;
+    pointer-events:none;
 }
 
 #controls {
-    position: fixed;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    padding: 15px;
-    pointer-events: none;
+    position:fixed;
+    bottom:12px;
+    left:0;
+    right:0;
+    display:flex;
+    justify-content:space-between;
+    padding:8px;
+    z-index:4;
+    pointer-events:none;
 }
-
-.pad, .actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+.control-group {
+    display:flex;
+    gap:5px;
+    align-items:end;
 }
-
 button {
-    pointer-events: auto;
-    border: 0;
-    border-radius: 12px;
-    background: #ff9800;
-    color: black;
-    font-size: 20px;
-    font-weight: bold;
-    padding: 16px;
-    touch-action: none;
+    border:0;
+    border-radius:10px;
+    padding:13px;
+    background:#ff9800;
+    color:black;
+    font-size:16px;
+    font-weight:bold;
+    touch-action:none;
+    pointer-events:auto;
 }
-
-#shoot {
-    background: #f44336;
-    color: white;
+#fire { background:#e53935; color:white; }
+#weapons {
+    position:fixed;
+    top:10px;
+    right:10px;
+    z-index:4;
+    display:flex;
+    gap:5px;
 }
-
+#weapons button { font-size:12px; padding:10px; }
 #start {
-    position: fixed;
-    inset: 0;
-    z-index: 10;
-    background: #000d;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 20px;
+    position:fixed;
+    inset:0;
+    z-index:10;
+    background:#07101aee;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    text-align:center;
+    padding:20px;
 }
-
-#start button {
-    font-size: 22px;
-}
+#start h1 { color:orange; }
+#start p { max-width:500px; line-height:1.7; }
+#start button { font-size:22px; padding:15px 30px; }
 </style>
 </head>
 
 <body>
 
-<div id="ui">
-    <b>🔥 KRISHNA BATTLE 3D</b>
-    <div id="health">Health: 100</div>
-    <div id="score">Score: 0</div>
-    <div id="message">Battle शुरू करें!</div>
+<div id="hud">
+    <strong>🔥 KRISHNA BATTLE 3D</strong><br>
+    ❤️ Health: <span id="health">100</span><br>
+    🎯 Score: <span id="score">0</span><br>
+    🔫 Weapon: <span id="weaponName">Pistol</span><br>
+    💥 Ammo: <span id="ammo">∞</span>
 </div>
+
+<div id="weapons">
+    <button onclick="selectWeapon(0)">1 PISTOL</button>
+    <button onclick="selectWeapon(1)">2 RIFLE</button>
+    <button onclick="selectWeapon(2)">3 SHOTGUN</button>
+</div>
+
+<div id="crosshair">+</div>
 
 <div id="start">
     <h1>🔥 KRISHNA BATTLE 3D</h1>
-    <p>दुश्मनों को हराएँ और मैदान में बचें!</p>
-    <p>Computer: WASD से चलें, Mouse से निशाना लगाएँ, Click से गोली चलाएँ।</p>
-    <p>Mobile: नीचे दिए बटन इस्तेमाल करें।</p>
+    <h2>Battle Royale Mini Game</h2>
+    <p>
+        दुश्मनों को हराएँ और अपना Score बढ़ाएँ।<br>
+        Computer: WASD से चलें, Mouse से निशाना लगाएँ और Click से गोली चलाएँ।<br>
+        Mobile: नीचे के बटन से चलें और FIRE दबाएँ।
+    </p>
     <button id="startBtn">START BATTLE</button>
 </div>
 
 <div id="controls">
-    <div class="pad">
+    <div class="control-group">
         <button id="left">◀</button>
         <button id="forward">▲</button>
         <button id="back">▼</button>
         <button id="right">▶</button>
     </div>
-    <div class="actions">
-        <button id="shoot">FIRE 🔫</button>
+    <div class="control-group">
+        <button id="fire">FIRE 🔫</button>
     </div>
 </div>
 
@@ -123,267 +148,386 @@ button {
 <script type="module">
 import * as THREE from "three";
 
-let scene, camera, renderer;
-let player, enemies = [];
-let score = 0;
-let health = 100;
+let scene, camera, renderer, player;
+let enemies = [];
+let obstacles = [];
 let running = false;
+let health = 100;
+let score = 0;
 let yaw = 0;
-let pitch = 0.12;
+let pitch = 0;
 let lastShot = 0;
+let audio;
+let selectedWeapon = 0;
 
+const clock = new THREE.Clock();
+const raycaster = new THREE.Raycaster();
 const keys = {};
 const touch = {
     left:false, right:false, forward:false, back:false
 };
 
-const raycaster = new THREE.Raycaster();
-const clock = new THREE.Clock();
+const weapons = [
+    {name:"Pistol", damage:50, speed:400, pellets:1, range:55},
+    {name:"Rifle", damage:35, speed:130, pellets:1, range:65},
+    {name:"Shotgun", damage:25, speed:750, pellets:5, range:25}
+];
 
-function makeMaterial(color) {
+function material(color) {
     return new THREE.MeshStandardMaterial({color});
+}
+
+function sound(frequency, duration, type="square") {
+    if(!audio) return;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.12,audio.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,audio.currentTime+duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(audio.destination);
+    oscillator.start();
+    oscillator.stop(audio.currentTime+duration);
 }
 
 function makeCharacter(color) {
     const group = new THREE.Group();
 
     const body = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.35, 0.4, 1.1, 12),
-        makeMaterial(color)
+        new THREE.CylinderGeometry(0.38,0.42,1.15,12),
+        material(color)
     );
-    body.position.y = 0.85;
+    body.position.y=0.85;
     group.add(body);
 
     const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.27, 16, 16),
-        makeMaterial(0xffcc99)
+        new THREE.SphereGeometry(0.28,16,16),
+        material(0xffcc99)
     );
-    head.position.y = 1.65;
+    head.position.y=1.65;
     group.add(head);
 
     const gun = new THREE.Mesh(
-        new THREE.BoxGeometry(0.16, 0.16, 0.8),
-        makeMaterial(0x222222)
+        new THREE.BoxGeometry(0.15,0.15,0.8),
+        material(0x222222)
     );
-    gun.position.set(0.42, 1.1, -0.45);
+    gun.position.set(0.42,1.1,-0.45);
     group.add(gun);
 
     return group;
 }
 
 function createEnemy() {
-    const enemy = makeCharacter(0xdd2222);
+    const enemy = makeCharacter(0xd52b2b);
 
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 12 + Math.random() * 10;
+    const angle=Math.random()*Math.PI*2;
+    const distance=18+Math.random()*25;
 
     enemy.position.set(
-        Math.sin(angle) * distance,
+        Math.sin(angle)*distance,
         0,
-        Math.cos(angle) * distance
+        Math.cos(angle)*distance
     );
+
+    enemy.userData.hp=100;
+    enemy.userData.lastAttack=0;
 
     scene.add(enemy);
     enemies.push(enemy);
 }
 
-function init() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 30, 75);
-
-    camera = new THREE.PerspectiveCamera(
-        70, window.innerWidth/window.innerHeight, 0.1, 100
+function addBuilding(x,z,width,height,depth,color) {
+    const building = new THREE.Mesh(
+        new THREE.BoxGeometry(width,height,depth),
+        material(color)
     );
 
-    renderer = new THREE.WebGLRenderer({antialias:true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    building.position.set(x,height/2,z);
+    scene.add(building);
+
+    obstacles.push({
+        x,z,
+        width:width/2,
+        depth:depth/2
+    });
+}
+
+function init() {
+    scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x87ceeb);
+    scene.fog=new THREE.Fog(0x87ceeb,45,100);
+
+    camera=new THREE.PerspectiveCamera(
+        70,window.innerWidth/window.innerHeight,0.1,150
+    );
+
+    renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5));
     document.body.appendChild(renderer.domElement);
 
-    const light = new THREE.HemisphereLight(0xffffff, 0x557755, 2);
-    scene.add(light);
+    scene.add(new THREE.HemisphereLight(0xffffff,0x446644,2));
 
-    const sun = new THREE.DirectionalLight(0xffffff, 2);
-    sun.position.set(10, 20, 10);
+    const sun=new THREE.DirectionalLight(0xffffff,2);
+    sun.position.set(15,30,10);
     scene.add(sun);
 
-    // Ground
-    const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(100, 100),
-        makeMaterial(0x408044)
+    const ground=new THREE.Mesh(
+        new THREE.PlaneGeometry(120,120),
+        material(0x397c42)
     );
-    ground.rotation.x = -Math.PI/2;
+    ground.rotation.x=-Math.PI/2;
     scene.add(ground);
 
-    // Buildings
-    for(let i=0; i<16; i++) {
-        const building = new THREE.Mesh(
-            new THREE.BoxGeometry(3, 3, 3),
-            makeMaterial(0x999999)
-        );
+    // Battle map buildings
+    addBuilding(15,-15,7,7,7,0x888888);
+    addBuilding(-18,-12,8,9,8,0xb1a08a);
+    addBuilding(20,18,9,6,7,0x8888aa);
+    addBuilding(-20,20,7,8,9,0x999999);
+    addBuilding(0,-30,12,6,6,0xaaaaaa);
+    addBuilding(30,0,6,9,10,0x888888);
+    addBuilding(-32,0,7,7,8,0xb0a080);
 
-        const angle = i * Math.PI/8;
-        building.position.set(
-            Math.sin(angle)*18,
-            1.5,
-            Math.cos(angle)*18
+    // Trees
+    for(let i=0;i<25;i++) {
+        const x=(Math.random()-.5)*100;
+        const z=(Math.random()-.5)*100;
+
+        const trunk=new THREE.Mesh(
+            new THREE.CylinderGeometry(.2,.3,2,8),
+            material(0x654321)
         );
-        scene.add(building);
+        trunk.position.set(x,1,z);
+        scene.add(trunk);
+
+        const leaves=new THREE.Mesh(
+            new THREE.SphereGeometry(1.2,10,10),
+            material(0x176b25)
+        );
+        leaves.position.set(x,2.5,z);
+        scene.add(leaves);
     }
 
-    // Player
-    player = makeCharacter(0x2266ff);
+    player=makeCharacter(0x2266ff);
     scene.add(player);
 
-    for(let i=0; i<6; i++) createEnemy();
+    for(let i=0;i<8;i++) createEnemy();
 
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize",resize);
 
-    renderer.domElement.addEventListener("click", () => {
+    document.addEventListener("keydown",e=>{
+        keys[e.key.toLowerCase()]=true;
+    });
+    document.addEventListener("keyup",e=>{
+        keys[e.key.toLowerCase()]=false;
+    });
+
+    renderer.domElement.addEventListener("click",()=>{
         if(running && !isMobile()) {
             renderer.domElement.requestPointerLock?.();
         }
     });
 
-    document.addEventListener("mousemove", e => {
-        if(document.pointerLockElement === renderer.domElement) {
-            yaw -= e.movementX * 0.002;
-            pitch -= e.movementY * 0.002;
-            pitch = Math.max(-0.4, Math.min(0.6, pitch));
+    document.addEventListener("mousemove",e=>{
+        if(document.pointerLockElement===renderer.domElement) {
+            yaw-=e.movementX*.002;
+            pitch-=e.movementY*.002;
+            pitch=THREE.MathUtils.clamp(pitch,-.5,.5);
         }
     });
 
-    document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-    document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+    document.addEventListener("mousedown",e=>{
+        if(e.button===0 && running &&
+           e.target===renderer.domElement) shoot();
+    });
 
-    camera.position.set(0, 5, 8);
+    camera.position.set(0,4,7);
     animate();
 }
 
 function isMobile() {
-    return window.matchMedia("(pointer: coarse)").matches;
+    return window.matchMedia("(pointer:coarse)").matches;
 }
 
 function resize() {
-    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.aspect=window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth,window.innerHeight);
+}
+
+function selectWeapon(index) {
+    selectedWeapon=index;
+    document.getElementById("weaponName").innerText=weapons[index].name;
 }
 
 function shoot() {
-    if(!running || performance.now() - lastShot < 350) return;
+    if(!running) return;
 
-    lastShot = performance.now();
+    const weapon=weapons[selectedWeapon];
+    const now=performance.now();
 
-    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+    if(now-lastShot<weapon.speed) return;
+    lastShot=now;
 
-    const hit = raycaster.intersectObjects(
-        enemies.flatMap(e => e.children),
-        false
+    sound(
+        selectedWeapon===0?180:
+        selectedWeapon===1?100:75,
+        selectedWeapon===2?.25:.12
     );
 
-    if(hit.length > 0) {
-        const target = hit[0].object.parent;
+    raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+    raycaster.far=weapon.range;
 
-        scene.remove(target);
-        enemies = enemies.filter(e => e !== target);
+    const parts=[];
+    enemies.forEach(enemy=>{
+        enemy.children.forEach(child=>parts.push(child));
+    });
 
-        score++;
-        document.getElementById("score").innerText = "Score: " + score;
+    const hits=raycaster.intersectObjects(parts,false);
 
-        document.getElementById("message").innerText = "🎯 दुश्मन खत्म!";
+    if(hits.length) {
+        let enemy=enemies.find(e=>e.children.includes(hits[0].object));
 
-        if(enemies.length < 6) createEnemy();
-    } else {
-        document.getElementById("message").innerText = "गोली निशाने से चूक गई!";
+        if(enemy) {
+            enemy.userData.hp-=weapon.damage;
+
+            if(enemy.userData.hp<=0) {
+                scene.remove(enemy);
+                enemies=enemies.filter(e=>e!==enemy);
+                score++;
+                document.getElementById("score").innerText=score;
+                sound(600,.15,"sine");
+
+                if(enemies.length<8) createEnemy();
+            } else {
+                sound(300,.08,"sine");
+            }
+        }
     }
 }
 
 function update(dt) {
     if(!running) return;
 
-    let forward =
-        keys["w"] || keys["arrowup"] || touch.forward ? 1 : 0;
-    let backward =
-        keys["s"] || keys["arrowdown"] || touch.back ? 1 : 0;
-    let left =
-        keys["a"] || keys["arrowleft"] || touch.left ? 1 : 0;
-    let right =
-        keys["d"] || keys["arrowright"] || touch.right ? 1 : 0;
+    const forward =
+        keys["w"]||keys["arrowup"]||touch.forward ? 1:0;
+    const backward =
+        keys["s"]||keys["arrowdown"]||touch.back ? 1:0;
+    const left =
+        keys["a"]||keys["arrowleft"]||touch.left ? 1:0;
+    const right =
+        keys["d"]||keys["arrowright"]||touch.right ? 1:0;
 
-    yaw += (right-left) * dt * 1.8;
+    yaw+=(right-left)*dt*1.8;
 
-    const move = forward-backward;
-    player.position.x -= Math.sin(yaw) * move * dt * 5;
-    player.position.z -= Math.cos(yaw) * move * dt * 5;
+    const move=forward-backward;
 
-    player.position.x = THREE.MathUtils.clamp(player.position.x,-22,22);
-    player.position.z = THREE.MathUtils.clamp(player.position.z,-22,22);
+    const oldX=player.position.x;
+    const oldZ=player.position.z;
 
-    player.rotation.y = yaw;
+    player.position.x-=Math.sin(yaw)*move*dt*6;
+    player.position.z-=Math.cos(yaw)*move*dt*6;
 
-    // Third person camera
-    const cameraOffset = new THREE.Vector3(
-        Math.sin(yaw) * 6,
-        3.5 + pitch * 3,
-        Math.cos(yaw) * 6
+    player.position.x=THREE.MathUtils.clamp(
+        player.position.x,-53,53
+    );
+    player.position.z=THREE.MathUtils.clamp(
+        player.position.z,-53,53
     );
 
-    camera.position.copy(player.position).add(cameraOffset);
-    camera.lookAt(
-        player.position.x,
-        player.position.y + 1.2,
-        player.position.z
+    // Simple building collision
+    for(const o of obstacles) {
+        if(
+            Math.abs(player.position.x-o.x)<o.width+.7 &&
+            Math.abs(player.position.z-o.z)<o.depth+.7
+        ) {
+            player.position.x=oldX;
+            player.position.z=oldZ;
+            break;
+        }
+    }
+
+    player.rotation.y=yaw;
+
+    const offset=new THREE.Vector3(
+        Math.sin(yaw)*6,
+        3.5+pitch*3,
+        Math.cos(yaw)*6
     );
 
-    // Enemy movement
-    enemies.forEach(enemy => {
-        const dx = player.position.x-enemy.position.x;
-        const dz = player.position.z-enemy.position.z;
-        const distance = Math.hypot(dx,dz);
+    camera.position.copy(player.position).add(offset);
 
-        if(distance > 1.5) {
-            enemy.position.x += dx/distance * dt * 1.2;
-            enemy.position.z += dz/distance * dt * 1.2;
-        } else {
-            health -= dt * 12;
-            document.getElementById("health").innerText =
-                "Health: " + Math.max(0, Math.floor(health));
+    const aim=new THREE.Vector3(
+        player.position.x-Math.sin(yaw)*10,
+        player.position.y+1.4+pitch*10,
+        player.position.z-Math.cos(yaw)*10
+    );
+
+    camera.lookAt(aim);
+
+    enemies.forEach(enemy=>{
+        const dx=player.position.x-enemy.position.x;
+        const dz=player.position.z-enemy.position.z;
+        const distance=Math.hypot(dx,dz);
+
+        enemy.rotation.y=Math.atan2(dx,dz);
+
+        if(distance>1.8) {
+            const speed=dt*1.5;
+            enemy.position.x+=dx/distance*speed;
+            enemy.position.z+=dz/distance*speed;
+        } else if(performance.now()-enemy.userData.lastAttack>800) {
+            enemy.userData.lastAttack=performance.now();
+            health-=8;
+
+            sound(90,.12,"sawtooth");
+
+            document.getElementById("health").innerText=
+                Math.max(0,Math.floor(health));
         }
     });
 
-    if(health <= 0) {
-        running = false;
-        document.getElementById("message").innerText =
-            "GAME OVER! आपका Score: " + score;
-        document.getElementById("startBtn").innerText = "PLAY AGAIN";
-        document.getElementById("start").style.display = "flex";
-    }
+    if(health<=0) gameOver();
+}
+
+function gameOver() {
+    running=false;
+    document.exitPointerLock?.();
+
+    document.getElementById("start").style.display="flex";
+    document.getElementById("start").innerHTML=`
+        <h1>💀 GAME OVER</h1>
+        <h2>Your Score: ${score}</h2>
+        <button id="restart">PLAY AGAIN</button>
+    `;
+
+    document.getElementById("restart").onclick=startBattle;
 }
 
 function animate() {
     requestAnimationFrame(animate);
-
-    const dt = Math.min(clock.getDelta(), 0.05);
+    const dt=Math.min(clock.getDelta(),.05);
 
     update(dt);
-
     renderer.render(scene,camera);
 }
 
-// Mobile control buttons
-function setupButton(id, direction) {
-    const button = document.getElementById(id);
+function setupButton(id,direction) {
+    const button=document.getElementById(id);
 
-    button.addEventListener("pointerdown", e => {
+    button.addEventListener("pointerdown",e=>{
         e.preventDefault();
-        touch[direction] = true;
+        touch[direction]=true;
     });
 
-    ["pointerup","pointerleave","pointercancel"].forEach(event => {
-        button.addEventListener(event, () => {
-            touch[direction] = false;
+    ["pointerup","pointerleave","pointercancel"].forEach(event=>{
+        button.addEventListener(event,()=>{
+            touch[direction]=false;
         });
     });
 }
@@ -393,40 +537,39 @@ setupButton("right","right");
 setupButton("forward","forward");
 setupButton("back","back");
 
-document.getElementById("shoot").addEventListener("pointerdown", e => {
+document.getElementById("fire").addEventListener("pointerdown",e=>{
     e.preventDefault();
     shoot();
 });
 
-document.getElementById("startBtn").addEventListener("click", () => {
+function startBattle() {
     if(!scene) init();
 
-    score = 0;
-    health = 100;
-    yaw = 0;
+    if(audio) audio.close();
+    audio=new (window.AudioContext||window.webkitAudioContext)();
+    audio.resume();
 
-    document.getElementById("score").innerText = "Score: 0";
-    document.getElementById("health").innerText = "Health: 100";
-    document.getElementById("message").innerText = "Battle शुरू!";
-    document.getElementById("start").style.display = "none";
+    score=0;
+    health=100;
+    yaw=0;
+    pitch=0;
+    lastShot=0;
 
-    enemies.forEach(e => scene.remove(e));
-    enemies = [];
+    document.getElementById("score").innerText="0";
+    document.getElementById("health").innerText="100";
+    document.getElementById("start").style.display="none";
+
+    enemies.forEach(e=>scene.remove(e));
+    enemies=[];
 
     player.position.set(0,0,0);
 
-    for(let i=0; i<6; i++) createEnemy();
+    for(let i=0;i<8;i++) createEnemy();
 
-    running = true;
-});
+    running=true;
+}
 
-// Mouse click fires while playing
-document.addEventListener("mousedown", e => {
-    if(e.button === 0 &&
-       running &&
-       e.target === renderer.domElement) shoot();
-});
+document.getElementById("startBtn").onclick=startBattle;
 </script>
-
 </body>
 </html>
