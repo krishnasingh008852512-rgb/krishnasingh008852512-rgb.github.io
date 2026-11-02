@@ -1,0 +1,432 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krishna Battle 3D</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+    font-family: Arial;
+    color: white;
+}
+
+#ui {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 5;
+    background: #000a;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+#message {
+    color: yellow;
+    font-size: 20px;
+}
+
+#controls {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    pointer-events: none;
+}
+
+.pad, .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+button {
+    pointer-events: auto;
+    border: 0;
+    border-radius: 12px;
+    background: #ff9800;
+    color: black;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 16px;
+    touch-action: none;
+}
+
+#shoot {
+    background: #f44336;
+    color: white;
+}
+
+#start {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: #000d;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+}
+
+#start button {
+    font-size: 22px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+    <b>🔥 KRISHNA BATTLE 3D</b>
+    <div id="health">Health: 100</div>
+    <div id="score">Score: 0</div>
+    <div id="message">Battle शुरू करें!</div>
+</div>
+
+<div id="start">
+    <h1>🔥 KRISHNA BATTLE 3D</h1>
+    <p>दुश्मनों को हराएँ और मैदान में बचें!</p>
+    <p>Computer: WASD से चलें, Mouse से निशाना लगाएँ, Click से गोली चलाएँ।</p>
+    <p>Mobile: नीचे दिए बटन इस्तेमाल करें।</p>
+    <button id="startBtn">START BATTLE</button>
+</div>
+
+<div id="controls">
+    <div class="pad">
+        <button id="left">◀</button>
+        <button id="forward">▲</button>
+        <button id="back">▼</button>
+        <button id="right">▶</button>
+    </div>
+    <div class="actions">
+        <button id="shoot">FIRE 🔫</button>
+    </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+
+let scene, camera, renderer;
+let player, enemies = [];
+let score = 0;
+let health = 100;
+let running = false;
+let yaw = 0;
+let pitch = 0.12;
+let lastShot = 0;
+
+const keys = {};
+const touch = {
+    left:false, right:false, forward:false, back:false
+};
+
+const raycaster = new THREE.Raycaster();
+const clock = new THREE.Clock();
+
+function makeMaterial(color) {
+    return new THREE.MeshStandardMaterial({color});
+}
+
+function makeCharacter(color) {
+    const group = new THREE.Group();
+
+    const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.4, 1.1, 12),
+        makeMaterial(color)
+    );
+    body.position.y = 0.85;
+    group.add(body);
+
+    const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.27, 16, 16),
+        makeMaterial(0xffcc99)
+    );
+    head.position.y = 1.65;
+    group.add(head);
+
+    const gun = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 0.16, 0.8),
+        makeMaterial(0x222222)
+    );
+    gun.position.set(0.42, 1.1, -0.45);
+    group.add(gun);
+
+    return group;
+}
+
+function createEnemy() {
+    const enemy = makeCharacter(0xdd2222);
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 12 + Math.random() * 10;
+
+    enemy.position.set(
+        Math.sin(angle) * distance,
+        0,
+        Math.cos(angle) * distance
+    );
+
+    scene.add(enemy);
+    enemies.push(enemy);
+}
+
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 30, 75);
+
+    camera = new THREE.PerspectiveCamera(
+        70, window.innerWidth/window.innerHeight, 0.1, 100
+    );
+
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const light = new THREE.HemisphereLight(0xffffff, 0x557755, 2);
+    scene.add(light);
+
+    const sun = new THREE.DirectionalLight(0xffffff, 2);
+    sun.position.set(10, 20, 10);
+    scene.add(sun);
+
+    // Ground
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        makeMaterial(0x408044)
+    );
+    ground.rotation.x = -Math.PI/2;
+    scene.add(ground);
+
+    // Buildings
+    for(let i=0; i<16; i++) {
+        const building = new THREE.Mesh(
+            new THREE.BoxGeometry(3, 3, 3),
+            makeMaterial(0x999999)
+        );
+
+        const angle = i * Math.PI/8;
+        building.position.set(
+            Math.sin(angle)*18,
+            1.5,
+            Math.cos(angle)*18
+        );
+        scene.add(building);
+    }
+
+    // Player
+    player = makeCharacter(0x2266ff);
+    scene.add(player);
+
+    for(let i=0; i<6; i++) createEnemy();
+
+    window.addEventListener("resize", resize);
+
+    renderer.domElement.addEventListener("click", () => {
+        if(running && !isMobile()) {
+            renderer.domElement.requestPointerLock?.();
+        }
+    });
+
+    document.addEventListener("mousemove", e => {
+        if(document.pointerLockElement === renderer.domElement) {
+            yaw -= e.movementX * 0.002;
+            pitch -= e.movementY * 0.002;
+            pitch = Math.max(-0.4, Math.min(0.6, pitch));
+        }
+    });
+
+    document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+    document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+    camera.position.set(0, 5, 8);
+    animate();
+}
+
+function isMobile() {
+    return window.matchMedia("(pointer: coarse)").matches;
+}
+
+function resize() {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function shoot() {
+    if(!running || performance.now() - lastShot < 350) return;
+
+    lastShot = performance.now();
+
+    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+
+    const hit = raycaster.intersectObjects(
+        enemies.flatMap(e => e.children),
+        false
+    );
+
+    if(hit.length > 0) {
+        const target = hit[0].object.parent;
+
+        scene.remove(target);
+        enemies = enemies.filter(e => e !== target);
+
+        score++;
+        document.getElementById("score").innerText = "Score: " + score;
+
+        document.getElementById("message").innerText = "🎯 दुश्मन खत्म!";
+
+        if(enemies.length < 6) createEnemy();
+    } else {
+        document.getElementById("message").innerText = "गोली निशाने से चूक गई!";
+    }
+}
+
+function update(dt) {
+    if(!running) return;
+
+    let forward =
+        keys["w"] || keys["arrowup"] || touch.forward ? 1 : 0;
+    let backward =
+        keys["s"] || keys["arrowdown"] || touch.back ? 1 : 0;
+    let left =
+        keys["a"] || keys["arrowleft"] || touch.left ? 1 : 0;
+    let right =
+        keys["d"] || keys["arrowright"] || touch.right ? 1 : 0;
+
+    yaw += (right-left) * dt * 1.8;
+
+    const move = forward-backward;
+    player.position.x -= Math.sin(yaw) * move * dt * 5;
+    player.position.z -= Math.cos(yaw) * move * dt * 5;
+
+    player.position.x = THREE.MathUtils.clamp(player.position.x,-22,22);
+    player.position.z = THREE.MathUtils.clamp(player.position.z,-22,22);
+
+    player.rotation.y = yaw;
+
+    // Third person camera
+    const cameraOffset = new THREE.Vector3(
+        Math.sin(yaw) * 6,
+        3.5 + pitch * 3,
+        Math.cos(yaw) * 6
+    );
+
+    camera.position.copy(player.position).add(cameraOffset);
+    camera.lookAt(
+        player.position.x,
+        player.position.y + 1.2,
+        player.position.z
+    );
+
+    // Enemy movement
+    enemies.forEach(enemy => {
+        const dx = player.position.x-enemy.position.x;
+        const dz = player.position.z-enemy.position.z;
+        const distance = Math.hypot(dx,dz);
+
+        if(distance > 1.5) {
+            enemy.position.x += dx/distance * dt * 1.2;
+            enemy.position.z += dz/distance * dt * 1.2;
+        } else {
+            health -= dt * 12;
+            document.getElementById("health").innerText =
+                "Health: " + Math.max(0, Math.floor(health));
+        }
+    });
+
+    if(health <= 0) {
+        running = false;
+        document.getElementById("message").innerText =
+            "GAME OVER! आपका Score: " + score;
+        document.getElementById("startBtn").innerText = "PLAY AGAIN";
+        document.getElementById("start").style.display = "flex";
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const dt = Math.min(clock.getDelta(), 0.05);
+
+    update(dt);
+
+    renderer.render(scene,camera);
+}
+
+// Mobile control buttons
+function setupButton(id, direction) {
+    const button = document.getElementById(id);
+
+    button.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        touch[direction] = true;
+    });
+
+    ["pointerup","pointerleave","pointercancel"].forEach(event => {
+        button.addEventListener(event, () => {
+            touch[direction] = false;
+        });
+    });
+}
+
+setupButton("left","left");
+setupButton("right","right");
+setupButton("forward","forward");
+setupButton("back","back");
+
+document.getElementById("shoot").addEventListener("pointerdown", e => {
+    e.preventDefault();
+    shoot();
+});
+
+document.getElementById("startBtn").addEventListener("click", () => {
+    if(!scene) init();
+
+    score = 0;
+    health = 100;
+    yaw = 0;
+
+    document.getElementById("score").innerText = "Score: 0";
+    document.getElementById("health").innerText = "Health: 100";
+    document.getElementById("message").innerText = "Battle शुरू!";
+    document.getElementById("start").style.display = "none";
+
+    enemies.forEach(e => scene.remove(e));
+    enemies = [];
+
+    player.position.set(0,0,0);
+
+    for(let i=0; i<6; i++) createEnemy();
+
+    running = true;
+});
+
+// Mouse click fires while playing
+document.addEventListener("mousedown", e => {
+    if(e.button === 0 &&
+       running &&
+       e.target === renderer.domElement) shoot();
+});
+</script>
+
+</body>
+</html>
